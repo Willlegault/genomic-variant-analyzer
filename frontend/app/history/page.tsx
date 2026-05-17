@@ -43,8 +43,10 @@ export default function HistoryPage() {
 
       {enabled === false ? (
         <div className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
-          History persistence is disabled — set SUPABASE_URL and SUPABASE_KEY in{" "}
-          <code className="font-mono">backend/.env</code> to enable it.
+          History persistence is disabled — analyses are not saved. To enable
+          persistent history create a Supabase project and set <code className="font-mono">SUPABASE_URL</code>
+          and <code className="font-mono">SUPABASE_KEY</code> in <code className="font-mono">backend/.env</code>.
+          The SQL schema is provided in the repo at <code className="font-mono">backend/schema.sql</code>.
         </div>
       ) : null}
 

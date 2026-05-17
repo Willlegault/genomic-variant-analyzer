@@ -13,16 +13,17 @@ export function VariantCard({ variant }: { variant: Variant }) {
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div className="flex items-baseline gap-3">
-          <code className="font-mono text-sm font-semibold">
-            {variant.hgvs_c}
-          </code>
-          {variant.hgvs_p ? (
-            <code className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
-              {variant.hgvs_p}
-            </code>
-          ) : null}
-        </div>
+          <div className="flex flex-col">
+            <div className="text-xs text-zinc-500 dark:text-zinc-400">HGVS (coding)</div>
+            <div className="flex items-baseline gap-3">
+              <code className="font-mono text-sm font-semibold">{variant.hgvs_c}</code>
+              {variant.hgvs_p ? (
+                <code className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
+                  {variant.hgvs_p}
+                </code>
+              ) : null}
+            </div>
+          </div>
         <span
           className="rounded-full px-2 py-0.5 text-xs font-medium text-white"
           style={{ backgroundColor: pathogenicityColor }}
@@ -72,7 +73,7 @@ function ClinVarSection({ variant }: { variant: Variant }) {
   if (cv?.skipped) {
     return (
       <p className="text-xs text-zinc-500 dark:text-zinc-400">
-        ClinVar lookup skipped.
+        ClinVar lookup skipped — pathogenicity was not queried for this run.
       </p>
     );
   }
@@ -88,7 +89,7 @@ function ClinVarSection({ variant }: { variant: Variant }) {
   if (!cv?.found) {
     return (
       <p className="text-xs text-zinc-500 dark:text-zinc-400">
-        Not found in ClinVar (query: <code className="font-mono">{cv?.query}</code>).
+        No ClinVar record found for this variant (query: <code className="font-mono">{cv?.query}</code>).
       </p>
     );
   }

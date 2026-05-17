@@ -30,6 +30,13 @@ export function Results({ result }: { result: AnalysisResponse }) {
         </p>
       </div>
 
+      <div className="rounded-lg border border-zinc-200 bg-white p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+        Charts: <strong>Pathogenicity</strong> shows ClinVar buckets for matched
+        variants (if looked up). <strong>Coding consequence</strong> summarizes
+        the predicted molecular effect (synonymous / missense / nonsense /
+        frameshift / in-frame indel).
+      </div>
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <ChartCard title="Pathogenicity (ClinVar)">
           <PathogenicityChart counts={summary.by_pathogenicity} />

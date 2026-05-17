@@ -56,6 +56,12 @@ export function SequenceForm({ onResult }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
+      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        Paste a coding DNA sequence (A/T/C/G only) that matches the chosen
+        reference region. The app performs a global alignment, reports variant
+        calls in HGVS-like syntax, looks up ClinVar (unless skipped), and
+        explains the biological consequence in plain language.
+      </p>
       <div className="flex flex-col gap-2">
         <label htmlFor="reference" className="text-sm font-medium">
           Reference sequence
@@ -64,7 +70,7 @@ export function SequenceForm({ onResult }: Props) {
           id="reference"
           value={referenceId}
           onChange={(e) => setReferenceId(e.target.value)}
-          className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-black"
           disabled={references.length === 0}
         >
           {references.map((r) => (
@@ -91,16 +97,16 @@ export function SequenceForm({ onResult }: Props) {
             onClick={loadFounderExample}
             className="text-xs text-blue-600 hover:underline dark:text-blue-400"
           >
-            Load BRCA1 c.68_69delAG example
+            Load demo: BRCA1 founder frameshift (c.68_69delAG)
           </button>
         </div>
         <textarea
           id="sequence"
           value={sequence}
           onChange={(e) => setSequence(e.target.value)}
-          placeholder="Paste an A/T/C/G sequence — same gene/region as the chosen reference."
+          placeholder="Paste an A/T/C/G sequence — must match the reference region (no spaces)."
           spellCheck={false}
-          className="min-h-32 rounded-md border border-zinc-300 bg-white px-3 py-2 font-mono text-xs leading-relaxed dark:border-zinc-700 dark:bg-zinc-900"
+          className="min-h-32 rounded-md border border-zinc-300 bg-white px-3 py-3 font-mono text-sm leading-relaxed text-black"
         />
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
           Whitespace is stripped automatically. {sequence.replace(/\s+/g, "").length} bp.
@@ -113,7 +119,8 @@ export function SequenceForm({ onResult }: Props) {
           checked={skipClinvar}
           onChange={(e) => setSkipClinvar(e.target.checked)}
         />
-        Skip ClinVar lookup (faster — disables pathogenicity classification)
+        Skip ClinVar lookup (faster). When enabled, the app will not fetch
+        ClinVar records and pathogenicity will be shown as "Not in ClinVar".
       </label>
 
       {error ? (
