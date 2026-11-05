@@ -1,0 +1,4 @@
+# Offline ML tooling (dataset building, training). Not needed by the deployed
+# Flask app, so it stays out of requirements.txt to keep the Railway image small.
+pandas==2.3.3
+pyarrow==22.0.0

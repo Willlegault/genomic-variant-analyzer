@@ -3,6 +3,10 @@
 Workflow:
     1. esearch?db=clinvar&term=<gene> <hgvs>  -> list of ClinVar IDs
     2. esummary?db=clinvar&id=<id1,id2,...>   -> per-record summaries
+    3. keep the record whose title names exactly this variant
+
+Step 3 matters: esearch is a fuzzy full-text search, and its first hit is often
+a different variant in the same gene (for "c.181T>G" it ranks c.313T>G first).
 
 The summary payload contains a `germline_classification.description` field that
 holds the pathogenicity label ("Pathogenic", "Benign", "Uncertain significance",
@@ -16,6 +20,7 @@ N variant lookups doesn't hammer NCBI when the same variant appears repeatedly.
 from __future__ import annotations
 
 import os
+import re
 import time
 from typing import Any
 
@@ -24,6 +29,10 @@ import requests
 
 _BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 _DEFAULT_TIMEOUT = 8  # seconds
+_MAX_CANDIDATES = 20  # search hits checked for an exact match
+
+# "NM_007294.4(BRCA1):c.68_69del (p.Glu23fs)" -> ("BRCA1", "c.68_69del")
+_TITLE_RE = re.compile(r"\(([^)]+)\):(c\.\S+)")
 _CACHE_TTL = 60 * 60  # 1 hour
 _CACHE_MAX = 1024
 
@@ -88,6 +97,11 @@ def _classification_from_summary(summary: dict[str, Any]) -> str | None:
     return None
 
 
+def _title_matches(title: str | None, gene: str, hgvs_c: str) -> bool:
+    match = _TITLE_RE.search(title or "")
+    return bool(match) and match.group(1) == gene and match.group(2) == hgvs_c
+
+
 def lookup(gene: str, hgvs_c: str, hgvs_p: str | None = None) -> dict:
     """Look up a single variant in ClinVar.
 
@@ -119,7 +133,9 @@ def lookup(gene: str, hgvs_c: str, hgvs_p: str | None = None) -> dict:
     }
 
     try:
-        search_params = {**_common_params(), "db": "clinvar", "term": query}
+        search_params = {
+            **_common_params(), "db": "clinvar", "term": query, "retmax": _MAX_CANDIDATES,
+        }
         r = requests.get(f"{_BASE}/esearch.fcgi", params=search_params, timeout=_DEFAULT_TIMEOUT)
         r.raise_for_status()
         ids = r.json().get("esearchresult", {}).get("idlist", []) or []
@@ -127,18 +143,21 @@ def lookup(gene: str, hgvs_c: str, hgvs_p: str | None = None) -> dict:
             _cache_put(cache_key, result)
             return result
 
-        clinvar_id = ids[0]
-        summary_params = {**_common_params(), "db": "clinvar", "id": clinvar_id}
+        summary_params = {**_common_params(), "db": "clinvar", "id": ",".join(ids)}
         r2 = requests.get(f"{_BASE}/esummary.fcgi", params=summary_params, timeout=_DEFAULT_TIMEOUT)
         r2.raise_for_status()
-        summary = r2.json().get("result", {}).get(clinvar_id, {}) or {}
+        summaries = r2.json().get("result", {}) or {}
 
-        result.update({
-            "found": True,
-            "classification": _classification_from_summary(summary),
-            "clinvar_id": clinvar_id,
-            "title": summary.get("title"),
-        })
+        for clinvar_id in ids:
+            summary = summaries.get(clinvar_id, {}) or {}
+            if _title_matches(summary.get("title"), gene, hgvs_c):
+                result.update({
+                    "found": True,
+                    "classification": _classification_from_summary(summary),
+                    "clinvar_id": clinvar_id,
+                    "title": summary.get("title"),
+                })
+                break
     except requests.RequestException as exc:
         result["error"] = f"ClinVar request failed: {exc.__class__.__name__}"
     except (ValueError, KeyError) as exc:

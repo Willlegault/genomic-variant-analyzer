@@ -1,0 +1,44 @@
+{
+  "source": "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/tab_delimited/variant_summary.txt.gz",
+  "source_file_modified": "2026-11-05",
+  "built_at": "2026-11-05T01:52:45+00:00",
+  "rows_after_filters": 202490,
+  "protein_changes_dropped_for_label_conflict": 1,
+  "variants": 200957,
+  "genes": 15281,
+  "splits": {
+    "test": {
+      "variants": 31008,
+      "genes": 2228,
+      "pathogenic": 9696,
+      "benign": 21312,
+      "pathogenic_fraction": 0.313
+    },
+    "train": {
+      "variants": 141607,
+      "genes": 10778,
+      "pathogenic": 42230,
+      "benign": 99377,
+      "pathogenic_fraction": 0.298
+    },
+    "val": {
+      "variants": 28342,
+      "genes": 2275,
+      "pathogenic": 8613,
+      "benign": 19729,
+      "pathogenic_fraction": 0.304
+    }
+  },
+  "top_genes": {
+    "FBN1": 1470,
+    "TTN": 1242,
+    "KMT2D": 1096,
+    "SCN1A": 1055,
+    "DNAH11": 1038,
+    "BRCA2": 840,
+    "COL4A5": 815,
+    "LDLR": 709,
+    "OBSCN": 691,
+    "BRCA1": 663
+  }
+}

@@ -3,6 +3,7 @@
 import {
   Bar,
   BarChart,
+  CartesianGrid,
   Cell,
   Legend,
   Pie,
@@ -14,11 +15,26 @@ import {
 } from "recharts";
 import type { Pathogenicity, VariantEffect } from "../lib/types";
 import {
+  CHART_THEME,
   EFFECT_COLORS,
   EFFECT_LABELS,
   PATHOGENICITY_COLORS,
   PATHOGENICITY_LABELS,
 } from "../lib/style";
+
+const TOOLTIP = {
+  contentStyle: {
+    background: CHART_THEME.tooltipBg,
+    border: `1px solid ${CHART_THEME.tooltipBorder}`,
+    borderRadius: 8,
+    fontSize: 12,
+  },
+  itemStyle: { color: CHART_THEME.tooltipText },
+  labelStyle: { color: CHART_THEME.text },
+  cursor: { fill: CHART_THEME.cursor },
+};
+
+const TICK = { fontSize: 11, fill: CHART_THEME.text };
 
 interface PathogenicityChartProps {
   counts: Record<string, number>;
@@ -44,19 +60,24 @@ export function PathogenicityChart({ counts }: PathogenicityChartProps) {
             dataKey="value"
             nameKey="name"
             cx="50%"
-            cy="50%"
+            cy="45%"
+            innerRadius={52}
             outerRadius={80}
-            label={({ name, value }) => `${name ?? ""}: ${value ?? 0}`}
+            paddingAngle={data.length > 1 ? 3 : 0}
+            stroke="none"
           >
             {data.map((entry) => (
-              <Cell
-                key={entry.key}
-                fill={PATHOGENICITY_COLORS[entry.key] ?? "#94a3b8"}
-              />
+              <Cell key={entry.key} fill={PATHOGENICITY_COLORS[entry.key] ?? "#94a3b8"} />
             ))}
           </Pie>
-          <Tooltip />
-          <Legend />
+          <Tooltip {...TOOLTIP} />
+          <Legend
+            iconType="circle"
+            iconSize={8}
+            formatter={(value: string) => (
+              <span style={{ color: CHART_THEME.text, fontSize: 12 }}>{value}</span>
+            )}
+          />
         </PieChart>
       </ResponsiveContainer>
     </div>
@@ -81,16 +102,20 @@ export function EffectChart({ counts }: EffectChartProps) {
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer>
-        <BarChart data={data}>
-          <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} />
-          <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-          <Tooltip />
-          <Bar dataKey="value">
+        <BarChart data={data} margin={{ top: 12, right: 8, left: -16, bottom: 0 }}>
+          <CartesianGrid vertical={false} stroke={CHART_THEME.grid} />
+          <XAxis
+            dataKey="name"
+            tick={TICK}
+            interval={0}
+            axisLine={{ stroke: CHART_THEME.grid }}
+            tickLine={false}
+          />
+          <YAxis allowDecimals={false} tick={TICK} axisLine={false} tickLine={false} />
+          <Tooltip {...TOOLTIP} />
+          <Bar dataKey="value" name="Variants" radius={[6, 6, 0, 0]} maxBarSize={56}>
             {data.map((entry) => (
-              <Cell
-                key={entry.key}
-                fill={EFFECT_COLORS[entry.key] ?? "#94a3b8"}
-              />
+              <Cell key={entry.key} fill={EFFECT_COLORS[entry.key] ?? "#94a3b8"} />
             ))}
           </Bar>
         </BarChart>
@@ -101,7 +126,7 @@ export function EffectChart({ counts }: EffectChartProps) {
 
 function EmptyChart({ label }: { label: string }) {
   return (
-    <div className="flex h-64 w-full items-center justify-center rounded-md border border-dashed border-zinc-300 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+    <div className="mt-2 flex h-64 w-full items-center justify-center rounded-lg border border-dashed border-line text-sm text-muted">
       {label}
     </div>
   );

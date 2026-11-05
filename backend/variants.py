@@ -139,6 +139,30 @@ def _walk_alignment(ref_aligned: str, query_aligned: str) -> list[dict]:
     return events
 
 
+def _shift_3prime(reference: str, event: dict) -> dict:
+    """Slide an indel to its right-most equivalent position (the HGVS 3' rule).
+
+    Inside a repeat, several placements give the same sequence — deleting either
+    "AG" from "AGAG" is indistinguishable. The aligner picks one arbitrarily;
+    HGVS (and therefore ClinVar) names the right-most one.
+    """
+    if event["type"] == "deletion":
+        seq, pos = event["ref"], event["ref_pos"]
+        while pos + len(seq) < len(reference) and reference[pos] == reference[pos + len(seq)]:
+            seq = seq[1:] + reference[pos + len(seq)]
+            pos += 1
+        return {**event, "ref_pos": pos, "ref": seq}
+
+    if event["type"] == "insertion":
+        seq, pos = event["alt"], event["ref_pos"]
+        while pos < len(reference) and reference[pos] == seq[0]:
+            seq = seq[1:] + reference[pos]
+            pos += 1
+        return {**event, "ref_pos": pos, "alt": seq}
+
+    return event
+
+
 def _classify_snp(reference: str, ref_pos: int, alt: str, frame_offset: int) -> dict:
     """Codon-aware classification of a single substitution.
 
@@ -217,12 +241,19 @@ def _classify_event(reference: str, event: dict, frame_offset: int) -> Variant:
     if etype == "insertion":
         alt = event["alt"]
         effect: Effect = "frameshift" if len(alt) % 3 != 0 else "in_frame_insertion"
-        # HGVS insertion syntax: c.{pos}_{pos+1}ins{bases}
-        hgvs_c = f"c.{pos_1}_{pos_1 + 1}ins{alt}"
+        # The bases go *between* reference positions ref_pos_0 and ref_pos_0 + 1
+        # (1-based), since ref_pos_0 is the 0-based index of the base after them.
+        dup_start = ref_pos_0 - len(alt)
+        if dup_start >= 0 and reference[dup_start:ref_pos_0] == alt:
+            # Inserted bases repeat the ones just before them: HGVS calls that a dup.
+            first = dup_start + 1
+            hgvs_c = f"c.{first}dup" if len(alt) == 1 else f"c.{first}_{ref_pos_0}dup"
+        else:
+            hgvs_c = f"c.{ref_pos_0}_{ref_pos_0 + 1}ins{alt}"
         return Variant(
             type="insertion",
             effect=effect,
-            position=pos_1,
+            position=ref_pos_0,
             ref_allele="",
             alt_allele=alt,
             hgvs_c=hgvs_c,
@@ -233,7 +264,9 @@ def _classify_event(reference: str, event: dict, frame_offset: int) -> Variant:
     ref = event["ref"]
     effect = "frameshift" if len(ref) % 3 != 0 else "in_frame_deletion"
     end_1 = pos_1 + len(ref) - 1
-    hgvs_c = f"c.{pos_1}del{ref}" if len(ref) == 1 else f"c.{pos_1}_{end_1}del{ref}"
+    # Current HGVS omits the deleted bases ("c.68_69del", not "c.68_69delAG");
+    # ClinVar titles use this form, so lookups match on it exactly.
+    hgvs_c = f"c.{pos_1}del" if len(ref) == 1 else f"c.{pos_1}_{end_1}del"
     return Variant(
         type="deletion",
         effect=effect,
@@ -241,7 +274,7 @@ def _classify_event(reference: str, event: dict, frame_offset: int) -> Variant:
         ref_allele=ref,
         alt_allele="",
         hgvs_c=hgvs_c,
-        notes=[f"{len(ref)} bp deleted"],
+        notes=[f"{len(ref)} bp deleted ({ref})"],
     )
 
 
@@ -256,7 +289,7 @@ def detect_variants(reference: str, query: str, frame_offset: int = 0) -> list[V
 
     alignment = _align(reference, query)
     ref_aligned, query_aligned = _aligned_strings(alignment)
-    events = _walk_alignment(ref_aligned, query_aligned)
+    events = [_shift_3prime(reference, e) for e in _walk_alignment(ref_aligned, query_aligned)]
     return [_classify_event(reference, e, frame_offset) for e in events]
 
 

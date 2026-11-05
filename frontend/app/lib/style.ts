@@ -11,14 +11,15 @@ export const PATHOGENICITY_LABELS: Record<Pathogenicity, string> = {
   unknown: "Not in ClinVar",
 };
 
+// Light tones: these are drawn on dark navy panels (text, outlines, chart fills).
 export const PATHOGENICITY_COLORS: Record<Pathogenicity, string> = {
-  pathogenic: "#dc2626",
-  likely_pathogenic: "#ea580c",
-  uncertain: "#ca8a04",
-  conflicting: "#7c3aed",
-  likely_benign: "#0891b2",
-  benign: "#16a34a",
-  other: "#64748b",
+  pathogenic: "#f87171",
+  likely_pathogenic: "#fb923c",
+  uncertain: "#facc15",
+  conflicting: "#c4b5fd",
+  likely_benign: "#22d3ee",
+  benign: "#4ade80",
+  other: "#94a3b8",
   unknown: "#94a3b8",
 };
 
@@ -33,11 +34,30 @@ export const EFFECT_LABELS: Record<VariantEffect, string> = {
 };
 
 export const EFFECT_COLORS: Record<VariantEffect, string> = {
-  synonymous: "#16a34a",
-  missense: "#ca8a04",
-  nonsense: "#dc2626",
-  frameshift: "#dc2626",
-  in_frame_insertion: "#0891b2",
-  in_frame_deletion: "#0891b2",
+  synonymous: "#4ade80",
+  missense: "#facc15",
+  nonsense: "#f87171",
+  frameshift: "#f87171",
+  in_frame_insertion: "#22d3ee",
+  in_frame_deletion: "#22d3ee",
   unknown: "#94a3b8",
 };
+
+// Recharts draws SVG attributes, which can't read CSS variables — mirror globals.css.
+export const CHART_THEME = {
+  text: "#b6c4dc",
+  grid: "rgba(148, 197, 255, 0.12)",
+  tooltipBg: "#0b1733",
+  tooltipBorder: "rgba(148, 197, 255, 0.25)",
+  tooltipText: "#eef4ff",
+  cursor: "rgba(255, 255, 255, 0.05)",
+};
+
+/** Tinted badge style: coloured text on a faint wash of the same colour. */
+export function tint(color: string) {
+  return {
+    color,
+    backgroundColor: `${color}1f`,
+    borderColor: `${color}66`,
+  };
+}
