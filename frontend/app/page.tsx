@@ -6,38 +6,47 @@ import { Results } from "./components/Results";
 import { SequenceForm } from "./components/SequenceForm";
 import type { AnalysisResponse } from "./lib/types";
 
+const STEPS = ["Pick a reference", "Paste a sequence or load the demo", "Analyze"];
+
 export default function Home() {
   const [result, setResult] = useState<AnalysisResponse | null>(null);
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10 sm:px-8">
-      <header className="flex flex-col gap-2">
-        <div className="flex items-baseline justify-between">
-          <h1 className="text-5xl font-extrabold tracking-tight">
-            Genomic Variant Analyzer
-          </h1>
+    <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-10 sm:px-8">
+      <header className="glass flex flex-col gap-5 p-6 sm:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="font-mono text-xs uppercase tracking-[0.18em] text-accent">
+            Biopython · ClinVar · HGVS
+          </span>
           <Link
             href="/history"
-            className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+            className="rounded-full border border-line px-3 py-1 text-sm text-fg transition hover:border-accent hover:text-accent"
           >
             History →
           </Link>
         </div>
-        <p className="max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
-          Analyze a short coding DNA sequence against a curated reference region.
-          The app aligns your sequence, reports variant calls in HGVS-like
-          notation, classifies coding consequences (synonymous / missense /
-          nonsense / frameshift / in‑frame indel), looks up ClinVar records,
-          and provides a plain‑language explanation for each variant.
-        </p>
-        <p className="max-w-2xl text-sm text-zinc-500 dark:text-zinc-400">
-          Quick steps: 1) choose a reference, 2) paste an A/T/C/G sequence, 3)
-          click "Analyze sequence". Use the built‑in BRCA1 example to see a
-          typical frameshift result.
-        </p>
+        <div className="flex flex-col gap-3">
+          <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl">
+            Genomic Variant Analyzer
+          </h1>
+          <p className="max-w-2xl text-[15px] leading-relaxed text-muted">
+            Find DNA variants against a reference gene, see what each does to the
+            protein, and check it in ClinVar.
+          </p>
+        </div>
+        <ol className="grid gap-3 sm:grid-cols-3">
+          {STEPS.map((step, i) => (
+            <li key={step} className="flex items-start gap-3 text-sm text-muted">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/15 font-mono text-xs font-semibold text-accent">
+                {i + 1}
+              </span>
+              <span className="pt-0.5">{step}</span>
+            </li>
+          ))}
+        </ol>
       </header>
 
-      <section className="rounded-lg border border-zinc-200 bg-white text-black p-5">
+      <section className="glass p-6 sm:p-8">
         <SequenceForm onResult={setResult} />
       </section>
 

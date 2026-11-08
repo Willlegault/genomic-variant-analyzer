@@ -1,95 +1,100 @@
 import type { Variant } from "../lib/types";
 import {
+  EFFECT_COLORS,
   EFFECT_LABELS,
   PATHOGENICITY_COLORS,
   PATHOGENICITY_LABELS,
+  tint,
 } from "../lib/style";
 
 export function VariantCard({ variant }: { variant: Variant }) {
   const pathogenicityColor = PATHOGENICITY_COLORS[variant.pathogenicity];
   const pathogenicityLabel = PATHOGENICITY_LABELS[variant.pathogenicity];
-  const effectLabel = EFFECT_LABELS[variant.effect];
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <div className="flex flex-col">
-            <div className="text-xs text-zinc-500 dark:text-zinc-400">HGVS (coding)</div>
-            <div className="flex items-baseline gap-3">
-              <code className="font-mono text-sm font-semibold">{variant.hgvs_c}</code>
-              {variant.hgvs_p ? (
-                <code className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
-                  {variant.hgvs_p}
-                </code>
-              ) : null}
-            </div>
+    <article className="glass flex flex-col gap-4 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
+            HGVS
           </div>
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <code className="font-mono text-lg font-semibold text-fg">{variant.hgvs_c}</code>
+            {variant.hgvs_p ? (
+              <code className="font-mono text-sm text-accent-2">{variant.hgvs_p}</code>
+            ) : null}
+          </div>
+        </div>
         <span
-          className="rounded-full px-2 py-0.5 text-xs font-medium text-white"
-          style={{ backgroundColor: pathogenicityColor }}
+          className="rounded-full border px-2.5 py-0.5 text-xs font-semibold"
+          style={tint(pathogenicityColor)}
         >
           {pathogenicityLabel}
         </span>
       </div>
 
       <div className="flex flex-wrap gap-2 text-xs">
-        <Pill>{effectLabel}</Pill>
-        <Pill>position {variant.position}</Pill>
+        <span
+          className="rounded-full border px-2.5 py-0.5 font-medium"
+          style={tint(EFFECT_COLORS[variant.effect])}
+        >
+          {EFFECT_LABELS[variant.effect]}
+        </span>
+        <Pill>pos {variant.position}</Pill>
         {variant.ref_codon && variant.alt_codon ? (
           <Pill>
-            codon {variant.codon_number}: {variant.ref_codon} → {variant.alt_codon}
+            codon {variant.codon_number} {variant.ref_codon} → {variant.alt_codon}
           </Pill>
         ) : null}
         {variant.ref_aa && variant.alt_aa ? (
           <Pill>
-            aa: {variant.ref_aa} → {variant.alt_aa === "*" ? "Stop" : variant.alt_aa}
+            aa {variant.ref_aa} → {variant.alt_aa === "*" ? "Stop" : variant.alt_aa}
           </Pill>
         ) : null}
-      </div>
-
-      <div className="flex flex-col gap-2 text-sm">
-        <p className="font-medium">{variant.explanation.headline}</p>
-        <p className="text-zinc-700 dark:text-zinc-300">
-          {variant.explanation.body}
-        </p>
-        {variant.explanation.context.map((c, i) => (
-          <p
-            key={i}
-            className="rounded-md border-l-2 border-blue-400 bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:bg-blue-950 dark:text-blue-200"
-          >
-            {c}
-          </p>
+        {variant.notes.map((n) => (
+          <Pill key={n}>{n}</Pill>
         ))}
       </div>
 
+      <details className="group text-sm">
+        <summary className="flex cursor-pointer select-none list-none items-center gap-2 font-semibold text-fg [&::-webkit-details-marker]:hidden">
+          <span className="inline-block text-accent transition group-open:rotate-90">›</span>
+          {variant.explanation.headline}
+        </summary>
+        <div className="mt-2 flex flex-col gap-2 pl-4">
+          <p className="leading-relaxed text-muted">{variant.explanation.body}</p>
+          {variant.explanation.context.map((c, i) => (
+            <p
+              key={i}
+              className="rounded-lg border border-accent-2/30 bg-accent-2/10 px-3 py-2 text-[13px] leading-relaxed text-fg"
+            >
+              {c}
+            </p>
+          ))}
+        </div>
+      </details>
+
       <ClinVarSection variant={variant} />
-    </div>
+    </article>
   );
 }
 
 function ClinVarSection({ variant }: { variant: Variant }) {
   const cv = variant.clinvar;
+  const base = "border-t border-line pt-3 text-xs";
 
   if (cv?.skipped) {
-    return (
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">
-        ClinVar lookup skipped — pathogenicity was not queried for this run.
-      </p>
-    );
+    return <p className={`${base} text-muted`}>ClinVar skipped</p>;
   }
 
   if (cv?.error) {
-    return (
-      <p className="text-xs text-red-600 dark:text-red-400">
-        ClinVar lookup error: {cv.error}
-      </p>
-    );
+    return <p className={`${base} text-red-300`}>ClinVar error: {cv.error}</p>;
   }
 
   if (!cv?.found) {
     return (
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">
-        No ClinVar record found for this variant (query: <code className="font-mono">{cv?.query}</code>).
+      <p className={`${base} text-muted`} title={`Searched: ${cv?.query ?? ""}`}>
+        Not in ClinVar
       </p>
     );
   }
@@ -99,22 +104,21 @@ function ClinVarSection({ variant }: { variant: Variant }) {
     : null;
 
   return (
-    <div className="flex flex-col gap-1 text-xs text-zinc-600 dark:text-zinc-400">
-      <div>
-        ClinVar:{" "}
-        <span className="font-medium text-zinc-800 dark:text-zinc-200">
-          {cv.classification ?? "—"}
-        </span>
+    <div className={`${base} flex flex-wrap items-baseline justify-between gap-2 text-muted`}>
+      <div className="flex flex-col gap-0.5">
+        <div>
+          ClinVar: <span className="font-semibold text-fg">{cv.classification ?? "—"}</span>
+        </div>
+        {cv.title ? <div className="font-mono">{cv.title}</div> : null}
       </div>
-      {cv.title ? <div className="text-zinc-500">{cv.title}</div> : null}
       {url ? (
         <a
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-600 hover:underline dark:text-blue-400"
+          className="font-medium text-accent hover:underline"
         >
-          View on ClinVar →
+          Record {cv.clinvar_id} ↗
         </a>
       ) : null}
     </div>
@@ -123,7 +127,7 @@ function ClinVarSection({ variant }: { variant: Variant }) {
 
 function Pill({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+    <span className="rounded-full border border-line bg-white/5 px-2.5 py-0.5 text-muted">
       {children}
     </span>
   );

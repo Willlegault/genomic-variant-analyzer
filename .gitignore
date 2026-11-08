@@ -7,6 +7,9 @@ backend/**/__pycache__/
 *.egg-info/
 .pytest_cache/
 
+# ML data (rebuilt by backend/ml/build_dataset.py)
+backend/ml/data/
+
 # Node / Next.js
 frontend/node_modules/
 frontend/.next/

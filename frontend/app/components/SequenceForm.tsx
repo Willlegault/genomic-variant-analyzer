@@ -8,6 +8,9 @@ interface Props {
   onResult: (result: AnalysisResponse) => void;
 }
 
+const FIELD =
+  "rounded-lg border border-line bg-panel-strong px-3 text-sm text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none";
+
 export function SequenceForm({ onResult }: Props) {
   const [references, setReferences] = useState<ReferenceMeta[]>([]);
   const [referenceId, setReferenceId] = useState<string>("");
@@ -26,6 +29,7 @@ export function SequenceForm({ onResult }: Props) {
   }, []);
 
   const reference = references.find((r) => r.id === referenceId);
+  const length = sequence.replace(/\s+/g, "").length;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,84 +51,81 @@ export function SequenceForm({ onResult }: Props) {
   }
 
   function loadFounderExample() {
-    // BRCA1 CDS head with the AG at positions 68-69 deleted — the
-    // Ashkenazi-founder frameshift c.68_69delAG. Useful as a one-click demo.
+    // BRCA1 CDS head with one AG of the AGAG repeat at 66-69 deleted — the
+    // Ashkenazi-founder frameshift c.68_69del (historically "185delAG").
     setSequence(
       "ATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAAATGTCATTAATGCTATGCAGAAAATCTTAGTGTCCCATCTGTCTGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCAAATTTTGCATGCTGAAACTTCTCAACCAGAAGAAAGGGCCTTCACAGTGTCCTTTATGT",
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4">
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Paste a coding DNA sequence (A/T/C/G only) that matches the chosen
-        reference region. The app performs a global alignment, reports variant
-        calls in HGVS-like syntax, looks up ClinVar (unless skipped), and
-        explains the biological consequence in plain language.
-      </p>
+    <form onSubmit={onSubmit} className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
-        <label htmlFor="reference" className="text-sm font-medium">
+        <label htmlFor="reference" className="text-sm font-medium text-fg">
           Reference sequence
         </label>
         <select
           id="reference"
           value={referenceId}
           onChange={(e) => setReferenceId(e.target.value)}
-          className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-black"
+          className={`${FIELD} py-2.5`}
           disabled={references.length === 0}
         >
           {references.map((r) => (
             <option key={r.id} value={r.id}>
-              {r.gene} — {r.description}
+              {r.gene} · first {r.length} bp of coding sequence
             </option>
           ))}
         </select>
         {reference ? (
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {reference.clinical_context} (Source: {reference.source}, length{" "}
-            {reference.length} bp)
-          </p>
+          <details className="text-xs text-muted">
+            <summary className="cursor-pointer select-none hover:text-fg">
+              {reference.source} · about {reference.gene}
+            </summary>
+            <p className="mt-1.5 leading-relaxed">{reference.clinical_context}</p>
+          </details>
         ) : null}
       </div>
 
       <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <label htmlFor="sequence" className="text-sm font-medium">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label htmlFor="sequence" className="text-sm font-medium text-fg">
             Query DNA sequence
           </label>
           <button
             type="button"
             onClick={loadFounderExample}
-            className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+            className="rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-medium text-accent transition hover:bg-accent/20"
           >
-            Load demo: BRCA1 founder frameshift (c.68_69delAG)
+            Load demo · 185delAG
           </button>
         </div>
         <textarea
           id="sequence"
           value={sequence}
           onChange={(e) => setSequence(e.target.value)}
-          placeholder="Paste an A/T/C/G sequence — must match the reference region (no spaces)."
+          placeholder="A, T, C, G only"
           spellCheck={false}
-          className="min-h-32 rounded-md border border-zinc-300 bg-white px-3 py-3 font-mono text-sm leading-relaxed text-black"
+          className={`${FIELD} min-h-36 py-3 font-mono leading-relaxed tracking-wide break-all`}
         />
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Whitespace is stripped automatically. {sequence.replace(/\s+/g, "").length} bp.
+        <p className="text-xs text-muted">
+          <span className="font-mono tabular-nums text-fg">{length}</span>
+          {reference ? ` / ${reference.length}` : ""} bp · spaces ignored
         </p>
       </div>
 
-      <label className="flex items-center gap-2 text-sm">
+      <label className="flex items-center gap-3 text-sm text-muted">
         <input
           type="checkbox"
           checked={skipClinvar}
           onChange={(e) => setSkipClinvar(e.target.checked)}
+          className="h-4 w-4 accent-[var(--accent)]"
         />
-        Skip ClinVar lookup (faster). When enabled, the app will not fetch
-        ClinVar records and pathogenicity will be shown as "Not in ClinVar".
+        Skip ClinVar (faster)
       </label>
 
       {error ? (
-        <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+        <div className="rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
           {error}
         </div>
       ) : null}
@@ -132,7 +133,7 @@ export function SequenceForm({ onResult }: Props) {
       <button
         type="submit"
         disabled={loading || !sequence.trim() || !referenceId}
-        className="self-start rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
+        className="self-start rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-ink transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-muted"
       >
         {loading ? "Analyzing…" : "Analyze sequence"}
       </button>

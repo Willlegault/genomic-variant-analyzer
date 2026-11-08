@@ -33,7 +33,7 @@ export default function VantaBackground() {
         }
         if (!(window as any).VANTA) {
           vantaScript = await loadScript(
-            "https://unpkg.com/vanta@latest/dist/vanta.cells.min.js",
+            "https://unpkg.com/vanta@0.5.24/dist/vanta.cells.min.js",
           );
         }
 

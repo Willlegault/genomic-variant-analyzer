@@ -1,26 +1,62 @@
 @import "tailwindcss";
 
+/*
+ * One deliberate dark look: the Vanta "cells" background is always dark, so the
+ * UI is too. Text never sits directly on the animation — it sits on frosted
+ * panels tinted with the same navy as the Vanta backgroundColor, which keeps
+ * contrast steady whatever cell colour drifts behind it.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ink: #071028; /* Vanta backgroundColor */
+  --panel: rgb(7 16 40 / 0.74);
+  --panel-strong: rgb(4 10 26 / 0.88);
+  --line: rgb(148 197 255 / 0.16);
+  --text: #eef4ff;
+  --text-muted: #b6c4dc;
+  --accent: #44cfa0; /* Vanta color2 */
+  --accent-2: #5aa8ff; /* lighter take on Vanta color1 */
+  color-scheme: dark;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-ink: var(--ink);
+  --color-panel: var(--panel);
+  --color-panel-strong: var(--panel-strong);
+  --color-line: var(--line);
+  --color-fg: var(--text);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility glass {
+  background-color: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  backdrop-filter: blur(14px) saturate(115%);
+  -webkit-backdrop-filter: blur(14px) saturate(115%);
+  box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.55);
+}
+
+/* Softens the animation behind the reading column without hiding it. */
+.scrim {
+  background: radial-gradient(
+    ellipse 70% 90% at 50% 40%,
+    rgb(7 16 40 / 0.55) 0%,
+    rgb(7 16 40 / 0.15) 70%,
+    transparent 100%
+  );
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
