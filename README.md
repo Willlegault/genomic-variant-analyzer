@@ -90,12 +90,19 @@ the form provides as a one-click demo.
 ### ClinVar (`backend/clinvar.py`)
 
 `esearch` against `db=clinvar` with `<gene>[gene] <hgvs_c> <hgvs_p>`, then
-`esummary` on the first hit. Pathogenicity is read from
+`esummary` on the top 20 hits, keeping only the record whose title names this
+exact gene and variant. Pathogenicity is read from
 `germline_classification.description` (current API) with fallback to
 `clinical_significance.description` (legacy shape). Free-text labels are
 bucketed into `pathogenic / likely_pathogenic / uncertain / conflicting /
 likely_benign / benign / other / unknown` for visualization. A 1-hour TTL
-cache prevents duplicate lookups within a session.
+cache prevents duplicate lookups within a session; failed lookups are not
+cached, so a transient error doesn't stick.
+
+NCBI allows 3 E-utilities requests per second (10 with an API key), and each
+lookup makes two. Requests are spaced to stay under that limit, and an HTTP 429
+is retried with backoff. Set `NCBI_API_KEY` (free from your NCBI account
+settings) to make multi-variant analyses about three times faster.
 
 ### Explanation layer (`backend/explanations.py`)
 
@@ -143,7 +150,7 @@ Connect the repo, set the project root to `frontend/`, and add the env var
 - Build: `pip install -r requirements.txt`
 - Start: `gunicorn -b 0.0.0.0:$PORT app:app`
 - Env vars: `FRONTEND_ORIGIN` (the Vercel URL), `NCBI_EMAIL`, and optionally
-  `SUPABASE_URL` + `SUPABASE_KEY`.
+  `NCBI_API_KEY` and `SUPABASE_URL` + `SUPABASE_KEY`.
 
 ### Supabase (optional)
 
