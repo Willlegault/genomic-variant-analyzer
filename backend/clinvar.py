@@ -44,6 +44,9 @@ _MIN_INTERVAL = 0.34
 _MIN_INTERVAL_WITH_KEY = 0.1
 _MAX_RETRIES = 2  # extra attempts after a 429
 _RETRY_BACKOFF = 1.0  # seconds, doubled on each retry unless Retry-After says otherwise
+# Upper bound on any single retry wait. A request runs inside a gunicorn worker
+# with a fixed timeout, so a large Retry-After must not stall it indefinitely.
+_MAX_RETRY_DELAY = 5.0
 
 _throttle_lock = threading.Lock()
 _last_request_at = 0.0
@@ -109,8 +112,10 @@ def _wait_for_slot() -> None:
 def _retry_delay(response: requests.Response, attempt: int) -> float:
     retry_after = response.headers.get("Retry-After", "")
     if retry_after.isdigit():
-        return float(retry_after)
-    return _RETRY_BACKOFF * (2 ** attempt)
+        delay = float(retry_after)
+    else:
+        delay = _RETRY_BACKOFF * (2 ** attempt)
+    return min(delay, _MAX_RETRY_DELAY)
 
 
 def _get(endpoint: str, params: dict[str, Any]) -> requests.Response:

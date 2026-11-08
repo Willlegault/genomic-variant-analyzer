@@ -17,7 +17,8 @@ export type Pathogenicity =
   | "uncertain"
   | "conflicting"
   | "other"
-  | "unknown";
+  | "unknown"
+  | "not_checked";
 
 export interface ClinVarResult {
   found?: boolean;
@@ -27,6 +28,7 @@ export interface ClinVarResult {
   query?: string;
   error?: string | null;
   skipped?: boolean;
+  reason?: string;
 }
 
 export interface Explanation {
