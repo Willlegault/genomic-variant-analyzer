@@ -84,7 +84,7 @@ function ClinVarSection({ variant }: { variant: Variant }) {
   const base = "border-t border-line pt-3 text-xs";
 
   if (cv?.skipped) {
-    return <p className={`${base} text-muted`}>ClinVar skipped</p>;
+    return <p className={`${base} text-muted`}>{cv.reason ?? "ClinVar not checked."}</p>;
   }
 
   if (cv?.error) {

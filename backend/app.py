@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
@@ -36,6 +37,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 logger = logging.getLogger("variant-analyzer")
 
 MAX_SEQUENCE_LENGTH = 10_000  # guard against pathological inputs
+
+# Each ClinVar lookup is two rate-limited NCBI requests (~1 s together), and the
+# whole analysis runs inside one gunicorn request (timeout in gunicorn.conf.py).
+# These caps keep a many-variant query well under that timeout; variants past
+# them are returned without a ClinVar result rather than failing the request.
+MAX_CLINVAR_LOOKUPS = 12
+CLINVAR_TIME_BUDGET = 20.0  # seconds
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": os.environ.get("FRONTEND_ORIGIN", "*")}})
@@ -87,11 +95,22 @@ def analyze():
     variant_dicts = variants_to_dicts(variants)
 
     # Attach ClinVar lookups + biological explanations.
-    for v in variant_dicts:
+    started = time.monotonic()
+    for i, v in enumerate(variant_dicts):
         v["explanation"] = explain_variant(v, reference)
         if skip_clinvar:
-            v["clinvar"] = {"skipped": True}
-            v["pathogenicity"] = "unknown"
+            v["clinvar"] = {"skipped": True, "reason": "ClinVar lookup turned off for this run."}
+            v["pathogenicity"] = "not_checked"
+            continue
+        if i >= MAX_CLINVAR_LOOKUPS:
+            reason = f"ClinVar is checked for the first {MAX_CLINVAR_LOOKUPS} variants only."
+        elif time.monotonic() - started > CLINVAR_TIME_BUDGET:
+            reason = "ClinVar was slow to respond, so later variants weren't checked."
+        else:
+            reason = None
+        if reason:
+            v["clinvar"] = {"skipped": True, "reason": reason}
+            v["pathogenicity"] = "not_checked"
             continue
         cv = clinvar.lookup(reference.gene, v["hgvs_c"], v.get("hgvs_p"))
         v["clinvar"] = cv

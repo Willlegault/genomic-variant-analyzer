@@ -101,8 +101,14 @@ cached, so a transient error doesn't stick.
 
 NCBI allows 3 E-utilities requests per second (10 with an API key), and each
 lookup makes two. Requests are spaced to stay under that limit, and an HTTP 429
-is retried with backoff. Set `NCBI_API_KEY` (free from your NCBI account
-settings) to make multi-variant analyses about three times faster.
+is retried with backoff (each wait capped at 5 s). Set `NCBI_API_KEY` (free
+from your NCBI account settings) to make multi-variant analyses about three
+times faster.
+
+Because an analysis runs inside a single HTTP request, ClinVar is checked for at
+most 12 variants and for at most 20 seconds per analysis (`MAX_CLINVAR_LOOKUPS`
+and `CLINVAR_TIME_BUDGET` in `app.py`). Variants past either limit are still
+detected and explained, and are marked `not_checked` with the reason.
 
 ### Explanation layer (`backend/explanations.py`)
 
@@ -132,10 +138,20 @@ cp .env.local.example .env.local
 npm run dev                # serves on :3000
 ```
 
-Visit `http://localhost:3000`, click "Load BRCA1 c.68_69delAG example", click
-"Analyze sequence". You'll get one detected variant (`c.66_67delAG`,
-frameshift), a pathogenicity pie chart, and a biological explanation card
-linking to ClinVar.
+Visit `http://localhost:3000`, click "Load demo · 185delAG", then "Analyze
+sequence". You'll get one detected variant (`c.68_69del`, frameshift), matched to
+ClinVar record 17662 (Pathogenic), with charts and an explanation card.
+
+### Tests
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+pytest
+```
+
+GitHub Actions (`.github/workflows/ci.yml`) runs these tests, checks the gunicorn
+config, and lints, type-checks, and builds the frontend on every pull request.
 
 ## Deployment
 
@@ -147,10 +163,13 @@ Connect the repo, set the project root to `frontend/`, and add the env var
 ### Backend → Railway
 
 - Service root: `backend/`
-- Build: `pip install -r requirements.txt`
-- Start: `gunicorn -b 0.0.0.0:$PORT app:app`
+- Build: `pip install -r requirements.txt` (Python version from `.python-version`)
+- Start: `gunicorn app:app`, as in the `Procfile`. Bind address, worker
+  threads, and a 60 s timeout come from `gunicorn.conf.py`, which gunicorn
+  loads automatically.
 - Env vars: `FRONTEND_ORIGIN` (the Vercel URL), `NCBI_EMAIL`, and optionally
   `NCBI_API_KEY` and `SUPABASE_URL` + `SUPABASE_KEY`.
+- Check it's up: `GET /api/health`.
 
 ### Supabase (optional)
 

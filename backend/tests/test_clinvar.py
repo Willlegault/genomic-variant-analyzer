@@ -92,6 +92,22 @@ def test_rate_limited_request_is_retried(monkeypatch, sleeps):
     assert 2.0 in sleeps  # honoured Retry-After
 
 
+def test_long_retry_after_is_capped(monkeypatch, sleeps):
+    ok = _fake_ncbi(FOUNDER)
+    calls = {"esearch": 0}
+
+    def get(url, params, timeout):
+        if url.endswith("esearch.fcgi"):
+            calls["esearch"] += 1
+            if calls["esearch"] == 1:
+                return _FakeResponse({}, status_code=429, headers={"Retry-After": "120"})
+        return ok(url, params, timeout)
+
+    monkeypatch.setattr(clinvar.requests, "get", get)
+    assert clinvar.lookup("BRCA1", "c.68_69del")["found"] is True
+    assert max(sleeps) == clinvar._MAX_RETRY_DELAY
+
+
 def test_persistent_rate_limit_gives_up_with_error(monkeypatch):
     monkeypatch.setattr(
         clinvar.requests, "get", lambda url, params, timeout: _FakeResponse({}, status_code=429)

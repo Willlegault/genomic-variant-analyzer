@@ -9,6 +9,7 @@ export const PATHOGENICITY_LABELS: Record<Pathogenicity, string> = {
   conflicting: "Conflicting",
   other: "Other",
   unknown: "Not in ClinVar",
+  not_checked: "Not checked",
 };
 
 // Light tones: these are drawn on dark navy panels (text, outlines, chart fills).
@@ -21,6 +22,7 @@ export const PATHOGENICITY_COLORS: Record<Pathogenicity, string> = {
   benign: "#4ade80",
   other: "#94a3b8",
   unknown: "#94a3b8",
+  not_checked: "#64748b",
 };
 
 export const EFFECT_LABELS: Record<VariantEffect, string> = {
