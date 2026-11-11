@@ -116,6 +116,59 @@ Each variant gets a `headline` + `body` written for a biology-literate reader,
 plus context flags: BRCA1 truncating variants get a tumour-suppressor LOF note;
 genes whose symbol starts with `CYP` get a pharmacogenomics note.
 
+## Machine learning (`backend/ml/`)
+
+The goal is a model that predicts whether a missense variant is pathogenic,
+including for variants ClinVar has never classified.
+
+### Dataset (`build_dataset.py`)
+
+Streams ClinVar's `variant_summary.txt.gz` and keeps GRCh38 single-nucleotide
+missense variants with a confident label (Pathogenic/Likely pathogenic = 1,
+Benign/Likely benign = 0) and at least one review star, one row per protein
+change: **200,957 variants across 15,281 genes**. Genes are hashed into
+train/val/test (70/15/15), so the test set contains only genes the model never
+saw. Counts are in `ml/reports/dataset_stats.json`.
+
+### Baseline model (`features.py`, `train_baseline.py`)
+
+51 features that describe only the amino-acid swap: BLOSUM62 score, changes in
+hydropathy, side-chain volume, charge, polarity, and aromaticity, which residues
+are involved (one-hot), and position in the protein. No feature identifies the
+gene. Logistic regression on standardized features; `C` is chosen on the
+validation genes.
+
+Results on the **31,008 test variants from 2,228 unseen genes** (31% pathogenic):
+
+| Method | ROC-AUC | PR-AUC |
+| --- | --- | --- |
+| Base-rate guess | 0.500 | 0.313 |
+| BLOSUM62 alone (no training) | 0.675 | 0.444 |
+| **Logistic regression baseline** | **0.739** | **0.557** |
+
+- **What it learned.** A worse BLOSUM62 score is the strongest pathogenic signal.
+  Losing a cysteine, glycine, or aromatic residue, or introducing a proline,
+  also pushes toward pathogenic. Later positions lean benign, likely in part
+  because very long proteins (e.g. TTN) carry many benign variants.
+- **Calibration.** Predicted probabilities track observed rates up to ~0.7; above
+  that the model is overconfident (e.g. 0.84 predicted vs 0.75 observed).
+- **Why the gene split matters.** On a random variant split the same model scores
+  ROC-AUC 0.755; adding a per-gene pathogenic-rate feature inflates that to
+  **0.937** (PR-AUC 0.884), even though it learns nothing that transfers to a new
+  gene.
+
+Full numbers, including the calibration table and feature weights, are in
+`ml/reports/baseline_metrics.json`. Published predictors that use evolutionary
+conservation and protein structure (such as AlphaMissense) score much higher;
+this baseline is the reference point the next features have to beat.
+
+```bash
+cd backend
+pip install -r requirements-ml.txt
+python ml/build_dataset.py     # ~450 MB download the first time, then ~40 s
+python ml/train_baseline.py    # ~10 s; model saved to ml/data/models/ (gitignored)
+```
+
 ## Running locally
 
 ### Backend
