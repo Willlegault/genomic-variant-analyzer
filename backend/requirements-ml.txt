@@ -2,3 +2,4 @@
 # Flask app, so it stays out of requirements.txt to keep the Railway image small.
 pandas==2.3.3
 pyarrow==22.0.0
+scikit-learn==1.7.2
